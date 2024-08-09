@@ -1,0 +1,72 @@
+version: '2.3'
+services:
+
+  client:
+    depends_on:
+      - server
+    build:
+      context: ./
+      dockerfile: client.dockerfile
+    image: rssmonster/client
+    ports:
+      - 8080:8080
+    environment:
+      VITE_VUE_APP_HOSTNAME: http://server:3000
+      VITE_NODE_ENV: development
+      VITE_BASE_URL: /
+      PORT: 8080
+    working_dir: /app
+    volumes:
+      - ./client/.env:/app/.env
+      - ./client/public:/app/public
+      - ./client/src:/app/src
+    links:
+      - server:server
+    hostname: client
+
+  server:
+    depends_on:
+      - mysql
+    build:
+      context: ./
+      dockerfile: server.dockerfile
+    image: rssmonster/server
+    ports:
+      - 3000:3000
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DB_USERNAME: rssmonster
+      DB_PASSWORD: password
+      DB_DATABASE: rssmonster
+      DB_HOSTNAME: mysql
+    working_dir: /app
+    volumes:
+      - ./server/app.js:/app/app.js
+      - ./server/controllers:/app/controllers
+      - ./server/config:/app/config
+      - ./server/models:/app/models
+      - ./server/util:/app/util
+      - ./server/routes:/app/routes
+      - ./server/seeders:/app/seeders
+    links:
+      - mysql:mysql
+    hostname: server
+
+  mysql:
+    container_name: mysqldb
+    image: mysql:5.7
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+      MYSQL_DATABASE: "rssmonster"
+      MYSQL_USER: "rssmonster"
+      MYSQL_PASSWORD: "password"
+    ports:
+      - "3306:3306"
+    volumes:
+      - /var/lib/mysql
+    restart: unless-stopped
+
+volumes:
+  dbdata:
